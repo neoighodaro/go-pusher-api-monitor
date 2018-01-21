@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Endpoints Monitor Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta.3/css/bootstrap.min.css" />
+</head>
+<body>
+    <div>
+        <nav class="navbar navbar-default navbar-static-top">
+            <div class="container">
+                <div class="navbar-header">
+                    <a class="navbar-brand" href="http://127.0.0.1:1234/">
+                        Goggles - A Real-Time API Monitor
+                    </a>
+                </div>
+            </div>
+        </nav>
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12 col-lg-12">
+                    <div class="endpoints list-group">
+                        {{#each endpoints}}
+                            <a id="endpoint-{{ID}}" href="#" class="list-group-item list-group-item-{{status_class LastStatus}}">
+                                <strong>{{name}}</strong>
+
+                                <span class="stats">
+                                    {{type}}: <strong>{{url}}</strong> |
+                                    Last Status: <span class="last_status">{{LastStatus}}</span> |
+                                    Times Called: <span class="times_called">{{NumRequests}}</span> |
+                                    Last Request IP: <span class="request_ip">{{LastRequester}}</span>
+                                </span>
+                            </a>
+                        {{/each}}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-beta.3/js/bootstrap.min.js"></script>
+    <script src="https://js.pusher.com/4.1/pusher.min.js"></script>
+    <script>
+        const pusher = new Pusher('app_id', {
+            cluster: "app_cluster",
+        });
+
+        const template = `<a id="endpoint-[ID]" href="#" class="list-group-item list-group-item-[status_class]">
+                                <strong>[Name]</strong>
+
+                                <span class="stats">
+                                    [Type]: <strong>[URL]</strong> |
+                                    Last Status: <span class="last_status">[LastStatus]</span> |
+                                    Times Called: <span class="times_called">[NumRequests]</span> |
+                                    Last Request IP: <span class="request_ip">[LastRequester]</span>
+                                </span>
+                            </a>`
+
+        const channel = pusher.subscribe("goggles_channel");
+
+        channel.bind('new_endpoint_request', function(data) {
+            var end_point_id = data.ID;
+
+            if ( $('#endpoint-' + end_point_id).length > 0 ) {
+                var status_class = getItemStatusClass(data['LastStatus']),
+                    endpoint     = $('#endpoint-' + end_point_id);
+
+                var calls = 1 * endpoint.find('span.times_called').text()
+
+                endpoint.find('span.last_status').text(data['LastStatus']);
+                endpoint.find('span.times_called').text( (calls + 1) )
+                endpoint.removeClass('list-group-item-success');
+                endpoint.removeClass('list-group-item-danger');
+                endpoint.removeClass('list-group-item-warning');
+
+                endpoint.addClass('list-group-item-' + status_class);
+            } else {
+                addNewEndPoint(data);
+            }
+        });
+
+        const addNewEndPoint = function(data) {
+            let newTemplate = template;
+
+            for (key in data) {
+                console.log(key, data[key])
+                newTemplate = newTemplate.replace('[' + key + ']', data[key]);
+            } 
+
+            newTemplate = newTemplate.replace('[status_class]', getItemStatusClass(data['LastStatus']));
+
+            $('.endpoints').append( $(newTemplate) );
+        }
+
+        const getItemStatusClass  = function(status) {
+            if (status >= 200 && status < 300) {
+                return "success";
+            } else if (status >= 300 && status < 400) {
+                return "warning";
+            } else if (status >= 400) {
+                return "danger";
+            }
+
+            return "success";
+        }
+    </script>
+</body>
+</html>
