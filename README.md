@@ -16,12 +16,9 @@ If you already have GO setup, then install the following packages:
 
 `$ go get github.com/pusher/pusher-http-go`
 
+
 ## Built With
-
-...
-
-## Acknowledgements
-
-...
-
-
+- Go programming language
+- [Iris framework](https://github.com/kataras/iris)
+- [GORM](https://github.com/jinzhu/gorm)
+- [Pusher](https://pusher.com) Channels
